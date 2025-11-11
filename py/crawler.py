@@ -1,8 +1,8 @@
 import requests, re, os
-from html.parser import HTMLParser
 
 BASE_URL = "https://m.tuiimg.com/meinv"
-IMG_DIR = "images"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+IMG_DIR = os.path.join(SCRIPT_DIR, "../images")
 TXT_PATH = os.path.join(IMG_DIR, "files.txt")
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 

@@ -1,90 +1,62 @@
-from selenium.webdriver.common.by import By
-import undetected_chromedriver as uc
-import os, time, requests
+import os
+import re
+import requests
+from bs4 import BeautifulSoup
 from PIL import Image
+from io import BytesIO
 
 BASE_URL = "https://m.tuiimg.com/meinv"
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-IMG_DIR = os.path.join(SCRIPT_DIR, "../images")
+IMG_DIR = "images"
 TXT_PATH = os.path.join(IMG_DIR, "files.txt")
-HEADERS = {"User-Agent": "Mozilla/5.0"}
 
-def setup_driver():
-    options = uc.ChromeOptions()
-    options.add_argument("--headless=new")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    return uc.Chrome(options=options)
+os.makedirs(IMG_DIR, exist_ok=True)
+existing_urls = set()
 
-def get_subpages(driver):
-    driver.get(BASE_URL)
-    time.sleep(2)
+# 读取已保存的地址，避免重复
+if os.path.exists(TXT_PATH):
+    with open(TXT_PATH, "r", encoding="utf-8") as f:
+        existing_urls = set(line.strip() for line in f if line.strip())
+
+def is_landscape(img: Image.Image) -> bool:
+    return img.width > img.height
+
+def save_image(url: str):
+    if url in existing_urls:
+        return
     try:
-        main_div = driver.find_element(By.CLASS_NAME, "main")
-        links = main_div.find_elements(By.TAG_NAME, "a")
-        sub_urls = [link.get_attribute("href") for link in links if link.get_attribute("href") and "/meinv/" in link.get_attribute("href")]
-        sub_urls = list(set(sub_urls))
-        print(f"🔗 提取子页面链接数量：{len(sub_urls)}")
-        return sub_urls
+        resp = requests.get(url, timeout=10)
+        img = Image.open(BytesIO(resp.content))
+        if is_landscape(img):
+            filename = os.path.basename(url)
+            path = os.path.join(IMG_DIR, filename)
+            img.save(path)
+            with open(TXT_PATH, "a", encoding="utf-8") as f:
+                f.write(url + "\n")
+            print(f"✅ Saved: {url}")
+        else:
+            print(f"⛔ Skipped (portrait): {url}")
     except Exception as e:
-        print("❌ 提取子页面失败：", e)
-        return []
+        print(f"❌ Error downloading {url}: {e}")
 
-def get_full_images(driver, sub_url):
-    driver.get(sub_url)
-    time.sleep(2)
-    try:
-        btn = driver.find_element(By.XPATH, "//span[contains(text(),'展开全图')]")
-        btn.click()
-        time.sleep(2)
-    except:
-        print("⚠️ 未找到展开按钮，跳过点击")
-    imgs = driver.find_elements(By.XPATH, "//img[contains(@src, 'i.tuiimg.net')]")
-    return list(set([img.get_attribute("src") for img in imgs]))
+def get_subpages():
+    resp = requests.get(BASE_URL, timeout=10)
+    soup = BeautifulSoup(resp.text, "html.parser")
+    links = soup.find_all("a", href=True)
+    return [f"https://m.tuiimg.com{a['href']}" for a in links if a["href"].startswith("/meinv/")]
 
-def is_landscape(image_path):
-    try:
-        with Image.open(image_path) as img:
-            return img.width > img.height
-    except:
-        return False
-
-def save_image(url):
-    name = url.split("/")[-1]
-    path = os.path.join(IMG_DIR, name)
-    if os.path.exists(path):
-        return False
-    try:
-        img = requests.get(url, headers=HEADERS, timeout=10).content
-        with open(path, "wb") as f:
-            f.write(img)
-        if not is_landscape(path):
-            os.remove(path)
-            return False
-        print(f"✅ 保存横图：{name}")
-        return True
-    except:
-        return False
-
-def update_txt(url):
-    if not os.path.exists(TXT_PATH):
-        open(TXT_PATH, "w").close()
-    with open(TXT_PATH, "r+", encoding="utf-8") as f:
-        lines = f.read().splitlines()
-        if url not in lines:
-            f.write(url + "\n")
+def extract_image_urls(page_url):
+    resp = requests.get(page_url, timeout=10)
+    soup = BeautifulSoup(resp.text, "html.parser")
+    # 模拟“展开全图”后的图片地址
+    return [img["src"] for img in soup.find_all("img", src=True) if img["src"].startswith("https://i.tuiimg.net") and img["src"].endswith(".jpg")]
 
 def main():
-    os.makedirs(IMG_DIR, exist_ok=True)
-    driver = setup_driver()
-    subpages = get_subpages(driver)
-    for sub in subpages:
-        img_urls = get_full_images(driver, sub)
+    subpages = get_subpages()
+    for page in subpages:
+        print(f"🔍 Visiting: {page}")
+        img_urls = extract_image_urls(page)
         for url in img_urls:
-            if save_image(url):
-                update_txt(url)
-            time.sleep(0.5)
-    driver.quit()
+            save_image(url)
 
 if __name__ == "__main__":
     main()

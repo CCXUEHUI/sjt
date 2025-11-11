@@ -26,3 +26,5 @@ jobs:
         run: |
           python crawler.py
           python filter.py
+          ls ../images
+          cat ../images/files.txt || echo "⚠️ files.txt 不存在"

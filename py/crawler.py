@@ -8,6 +8,11 @@ BASE_URL = "https://m.tuiimg.com/meinv"
 IMG_DIR = "images"
 TXT_PATH = os.path.join(IMG_DIR, "files.txt")
 
+# 模拟移动端浏览器
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1 Mobile/15E148 Safari/604.1"
+}
+
 # 创建 images 文件夹
 os.makedirs(IMG_DIR, exist_ok=True)
 
@@ -26,7 +31,7 @@ def save_image(url: str):
         return
     try:
         print(f"⬇️ 正在下载图片：{url}")
-        resp = requests.get(url, timeout=10)
+        resp = requests.get(url, headers=HEADERS, timeout=10)
         resp.raise_for_status()
         img = Image.open(BytesIO(resp.content))
         print(f"📐 图片尺寸：{img.width}x{img.height}")
@@ -45,7 +50,8 @@ def save_image(url: str):
 def get_subpages():
     try:
         print(f"🌐 正在访问主页面：{BASE_URL}")
-        resp = requests.get(BASE_URL, timeout=10)
+        resp = requests.get(BASE_URL, headers=HEADERS, timeout=10)
+        print(f"📄 页面状态码：{resp.status_code}")
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         main_div = soup.find("div", class_="main")
@@ -63,7 +69,7 @@ def get_subpages():
 def extract_image_urls(page_url):
     try:
         print(f"📄 访问子页面：{page_url}")
-        resp = requests.get(page_url, timeout=10)
+        resp = requests.get(page_url, headers=HEADERS, timeout=10)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         img_tags = soup.find_all("img", src=True)

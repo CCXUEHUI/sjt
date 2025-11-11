@@ -22,38 +22,60 @@ def is_landscape(img: Image.Image) -> bool:
 
 def save_image(url: str):
     if url in existing_urls:
+        print(f"🔁 已存在，跳过：{url}")
         return
     try:
+        print(f"⬇️ 正在下载图片：{url}")
         resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
         img = Image.open(BytesIO(resp.content))
+        print(f"📐 图片尺寸：{img.width}x{img.height}")
         if is_landscape(img):
             filename = os.path.basename(url)
             path = os.path.join(IMG_DIR, filename)
             img.save(path)
             with open(TXT_PATH, "a", encoding="utf-8") as f:
                 f.write(url + "\n")
-            print(f"✅ Saved: {url}")
+            print(f"✅ 已保存横图：{filename}")
         else:
-            print(f"⛔ Skipped (portrait): {url}")
+            print(f"⛔ 跳过竖图：{url}")
     except Exception as e:
-        print(f"❌ Error downloading {url}: {e}")
+        print(f"❌ 下载失败：{url}，错误：{e}")
 
 def get_subpages():
-    resp = requests.get(BASE_URL, timeout=10)
-    soup = BeautifulSoup(resp.text, "html.parser")
-    links = soup.find_all("a", href=True)
-    return [f"https://m.tuiimg.com{a['href']}" for a in links if a["href"].startswith("/meinv/")]
+    try:
+        print(f"🌐 正在访问主页面：{BASE_URL}")
+        resp = requests.get(BASE_URL, timeout=10)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        links = soup.find_all("a", href=True)
+        subpages = [f"https://m.tuiimg.com{a['href']}" for a in links if a["href"].startswith("/meinv/")]
+        print(f"🔗 获取到 {len(subpages)} 个子页面链接")
+        return subpages
+    except Exception as e:
+        print(f"❌ 获取子页面失败：{e}")
+        return []
 
 def extract_image_urls(page_url):
-    resp = requests.get(page_url, timeout=10)
-    soup = BeautifulSoup(resp.text, "html.parser")
-    # 模拟“展开全图”后的图片地址
-    return [img["src"] for img in soup.find_all("img", src=True) if img["src"].startswith("https://i.tuiimg.net") and img["src"].endswith(".jpg")]
+    try:
+        print(f"📄 访问子页面：{page_url}")
+        resp = requests.get(page_url, timeout=10)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        img_tags = soup.find_all("img", src=True)
+        img_urls = [img["src"] for img in img_tags if img["src"].startswith("https://i.tuiimg.net") and img["src"].endswith(".jpg")]
+        print(f"🖼️ 提取到 {len(img_urls)} 张图片")
+        return img_urls
+    except Exception as e:
+        print(f"❌ 提取图片失败：{page_url}，错误：{e}")
+        return []
 
 def main():
     subpages = get_subpages()
+    if not subpages:
+        print("⚠️ 没有子页面，终止任务")
+        return
     for page in subpages:
-        print(f"🔍 Visiting: {page}")
         img_urls = extract_image_urls(page)
         for url in img_urls:
             save_image(url)

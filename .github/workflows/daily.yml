@@ -20,8 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests-html pillow flask lxml[html_clean]
-
+          pip install selenium undetected-chromedriver pillow requests
       - name: Run crawler and filter
         working-directory: ./py
         run: |

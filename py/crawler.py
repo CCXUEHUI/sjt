@@ -1,5 +1,5 @@
-import requests, re, os
-from time import sleep
+from requests_html import HTMLSession
+import os, re, time
 
 BASE_URL = "https://m.tuiimg.com/meinv"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -7,26 +7,30 @@ IMG_DIR = os.path.join(SCRIPT_DIR, "../images")
 TXT_PATH = os.path.join(IMG_DIR, "files.txt")
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
+session = HTMLSession()
+
 def get_subpages():
     try:
-        html = requests.get(BASE_URL, headers=HEADERS, timeout=10).text
-        print("✅ 主页面获取成功")
-        subs = re.findall(r'https://m\.tuiimg\.com/meinv/\d+', html)
+        r = session.get(BASE_URL, headers=HEADERS)
+        r.html.render(timeout=20)
+        print("✅ 主页面渲染成功")
+        subs = list(set(re.findall(r'https://m\.tuiimg\.com/meinv/\d+', r.html.html)))
         print(f"🔗 提取子页面链接数量：{len(subs)}")
-        return list(set(subs))
+        return subs
     except Exception as e:
-        print("❌ 主页面获取失败:", e)
+        print("❌ 主页面渲染失败:", e)
         return []
 
 def get_full_images(sub_url):
     try:
-        html = requests.get(sub_url, headers=HEADERS, timeout=10).text
-        print(f"📄 访问子页面成功：{sub_url}")
-        imgs = re.findall(r'https://i\.tuiimg\.net/\S+?\.jpg', html)
+        r = session.get(sub_url, headers=HEADERS)
+        r.html.render(timeout=20)
+        print(f"📄 渲染子页面成功：{sub_url}")
+        imgs = list(set(re.findall(r'https://i\.tuiimg\.net/\S+?\.jpg', r.html.html)))
         print(f"🖼️ 提取图片链接数量：{len(imgs)}")
-        return list(set(imgs))
+        return imgs
     except Exception as e:
-        print(f"❌ 子页面访问失败：{sub_url}", e)
+        print(f"❌ 子页面渲染失败：{sub_url}", e)
         return []
 
 def save_image(url):
@@ -34,7 +38,7 @@ def save_image(url):
     path = os.path.join(IMG_DIR, name)
     if not os.path.exists(path):
         try:
-            img = requests.get(url, headers=HEADERS, timeout=10).content
+            img = session.get(url, headers=HEADERS).content
             with open(path, "wb") as f:
                 f.write(img)
             print(f"✅ 保存图片成功：{name}")
@@ -70,7 +74,7 @@ def main():
         for img_url in img_urls:
             if save_image(img_url):
                 update_txt(img_url)
-            sleep(0.5)  # 避免请求过快被封
+            time.sleep(0.5)
 
 if __name__ == "__main__":
     main()

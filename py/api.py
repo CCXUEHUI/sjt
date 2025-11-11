@@ -1,22 +1,19 @@
-from PIL import Image
-import os
+from flask import Flask, send_file
+import os, random
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 IMG_DIR = os.path.join(SCRIPT_DIR, "../images")
 
-def is_landscape(path):
-    try:
-        with Image.open(path) as img:
-            return img.width > img.height
-    except:
-        return False
+app = Flask(__name__)
 
-def clean_portraits():
-    for file in os.listdir(IMG_DIR):
-        if file.endswith(".jpg"):
-            path = os.path.join(IMG_DIR, file)
-            if not is_landscape(path):
-                os.remove(path)
+@app.route("/random")
+def random_image():
+    files = [f for f in os.listdir(IMG_DIR) if f.endswith(".jpg")]
+    if not files:
+        return "🚫 没有可用图片", 404
+    choice = random.choice(files)
+    print(f"🎲 随机展示图片：{choice}")
+    return send_file(os.path.join(IMG_DIR, choice), mimetype="image/jpeg")
 
 if __name__ == "__main__":
-    clean_portraits()
+    app.run(port=5000)

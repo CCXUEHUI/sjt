@@ -2,7 +2,7 @@ name: Daily Image Crawler
 
 on:
   schedule:
-    - cron: '0 16 * * *'  # UTC 16点 = 中国时间 24点
+    - cron: '0 16 * * *'  # 每天中国时间 24 点
   workflow_dispatch:
 
 jobs:
@@ -22,6 +22,7 @@ jobs:
           pip install requests pillow flask
 
       - name: Run crawler and filter
+        working-directory: ./py
         run: |
-          python py/crawler.py
-          python py/filter.py
+          python crawler.py
+          python filter.py

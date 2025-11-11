@@ -1,8 +1,7 @@
-# py/filter.py
 from PIL import Image
 import os
 
-IMG_DIR = "../images"
+IMG_DIR = "images"
 
 def is_landscape(path):
     try:

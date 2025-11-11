@@ -1,6 +1,5 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.chrome.options import Options
 import undetected_chromedriver as uc
 import os, time, requests
 from PIL import Image
@@ -97,3 +96,9 @@ def main():
             driver.back()
             time.sleep(2)
         except Exception as e:
+            print(f"⚠️ 第 {i+1} 张图片处理失败：", e)
+
+    driver.quit()
+
+if __name__ == "__main__":
+    main()

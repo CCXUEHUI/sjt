@@ -2,14 +2,15 @@ name: Daily Image Crawler
 
 on:
   schedule:
-    - cron: '0 16 * * *'  # 每天中国时间 24 点
+    - cron: '0 16 * * *'  # 每天中国时间 24 点（UTC+8）
   workflow_dispatch:
 
 jobs:
   run-crawler:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up Python
@@ -19,12 +20,16 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests-html pillow flask
+          pip install requests-html pillow flask lxml[html_clean]
 
       - name: Run crawler and filter
         working-directory: ./py
         run: |
+          echo "🚀 开始执行 crawler.py"
           python crawler.py
+          echo "🧹 执行 filter.py 清理竖图"
           python filter.py
+          echo "📂 当前 images 文件夹内容："
           ls ../images
+          echo "📄 当前 files.txt 内容："
           cat ../images/files.txt || echo "⚠️ files.txt 不存在"

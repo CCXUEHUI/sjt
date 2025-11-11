@@ -1,8 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 import undetected_chromedriver as uc
 import os, time, requests
 from PIL import Image
@@ -35,9 +33,21 @@ def get_subpages(driver):
     driver.get(BASE_URL)
     scroll_to_bottom(driver)
     time.sleep(2)
-    links = driver.find_elements(By.TAG_NAME, "a")
-    sub_urls = list(set([link.get_attribute("href") for link in links if link.get_attribute("href") and "/meinv/" in link.get_attribute("href")]))
-    print(f"🔗 提取子页面链接数量：{len(sub_urls)}")
+
+    imgs = driver.find_elements(By.TAG_NAME, "img")
+    sub_urls = []
+
+    for img in imgs:
+        try:
+            parent = img.find_element(By.XPATH, "./ancestor::a[1]")
+            href = parent.get_attribute("href")
+            if href and "/meinv/" in href:
+                sub_urls.append(href)
+        except:
+            continue
+
+    sub_urls = list(set(sub_urls))
+    print(f"🔗 从图片提取子页面链接数量：{len(sub_urls)}")
     return sub_urls
 
 def get_full_images(driver, sub_url):

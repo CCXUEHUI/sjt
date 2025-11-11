@@ -1,20 +1,18 @@
-# py/crawler.py
 import requests, re, os
 from html.parser import HTMLParser
 
 BASE_URL = "https://m.tuiimg.com/meinv"
-IMG_DIR = "../images"
+IMG_DIR = "images"
 TXT_PATH = os.path.join(IMG_DIR, "files.txt")
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 def get_subpages():
     html = requests.get(BASE_URL, headers=HEADERS).text
-    return re.findall(r'https://m\.tuiimg\.com/meinv/\d+', html)
+    return list(set(re.findall(r'https://m\.tuiimg\.com/meinv/\d+', html)))
 
 def get_full_images(sub_url):
     html = requests.get(sub_url, headers=HEADERS).text
-    # 模拟“展开全图”效果：页面已加载所有图
-    return re.findall(r'https://i\.tuiimg\.net/\S+?\.jpg', html)
+    return list(set(re.findall(r'https://i\.tuiimg\.net/\S+?\.jpg', html)))
 
 def save_image(url):
     name = url.split("/")[-1]
@@ -27,8 +25,9 @@ def save_image(url):
     return False
 
 def update_txt(url):
-    with open(TXT_PATH, "a+", encoding="utf-8") as f:
-        f.seek(0)
+    if not os.path.exists(TXT_PATH):
+        open(TXT_PATH, "w").close()
+    with open(TXT_PATH, "r+", encoding="utf-8") as f:
         lines = f.read().splitlines()
         if url not in lines:
             f.write(url + "\n")

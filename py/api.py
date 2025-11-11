@@ -1,9 +1,8 @@
-# py/api.py
 from flask import Flask, send_file
 import os, random
 
 app = Flask(__name__)
-IMG_DIR = "../images"
+IMG_DIR = "images"
 
 @app.route("/random")
 def random_image():

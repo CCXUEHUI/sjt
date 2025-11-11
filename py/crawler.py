@@ -10,7 +10,7 @@ TXT_PATH = os.path.join(IMG_DIR, "files.txt")
 
 # 模拟 Android + Via 浏览器 UA
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Linux; Android 10; Pixel 3 XL Build/QQ3A.200805.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/88.0.4324.93 Mobile Safari/537.36 Via/4.3.9"
+    "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36 EdgA/136.0.0.0"
 }
 
 # 创建 images 文件夹

@@ -1,7 +1,8 @@
 from PIL import Image
 import os
 
-IMG_DIR = "images"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+IMG_DIR = os.path.join(SCRIPT_DIR, "../images")
 
 def is_landscape(path):
     try:

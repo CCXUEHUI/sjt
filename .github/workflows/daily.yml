@@ -2,39 +2,26 @@ name: Daily Image Crawler
 
 on:
   schedule:
-    - cron: '0 16 * * *'  # 每天中国时间 24 点（UTC+8）
+    - cron: '0 16 * * *'  # 每天中国时间 24 点（UTC+8 = UTC 16 点）
   workflow_dispatch:
 
 jobs:
   run-crawler:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install Python dependencies
+      - name: Install dependencies
         run: |
-          pip install selenium undetected-chromedriver pillow requests webdriver-manager
+          pip install requests beautifulsoup4 pillow
 
-      - name: Run crawler and filter
-        working-directory: ./py
+      - name: Run crawler
         run: |
           echo "🚀 开始执行 crawler.py"
-          python crawler.py
-          echo "🧹 执行 filter.py 清理竖图"
-          python filter.py
-          echo "📂 当前 images 文件夹内容："
-          ls ../images
-          echo "📄 当前 files.txt 内容："
-          cat ../images/files.txt || echo "⚠️ files.txt 不存在"
+          python py/crawler.py

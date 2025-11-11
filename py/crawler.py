@@ -8,9 +8,9 @@ BASE_URL = "https://m.tuiimg.com/meinv"
 IMG_DIR = "images"
 TXT_PATH = os.path.join(IMG_DIR, "files.txt")
 
-# 模拟移动端浏览器
+# 模拟 Android + Via 浏览器 UA
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1 Mobile/15E148 Safari/604.1"
+    "User-Agent": "Mozilla/5.0 (Linux; Android 10; Pixel 3 XL Build/QQ3A.200805.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/88.0.4324.93 Mobile Safari/537.36 Via/4.3.9"
 }
 
 # 创建 images 文件夹
@@ -60,35 +60,4 @@ def get_subpages():
             return []
         links = main_div.find_all("a", href=True)
         subpages = [f"https://m.tuiimg.com{a['href']}" for a in links if a["href"].startswith("/meinv/")]
-        print(f"🔗 获取到 {len(subpages)} 个有效子页面链接")
-        return subpages
-    except Exception as e:
-        print(f"❌ 获取子页面失败：{e}")
-        return []
-
-def extract_image_urls(page_url):
-    try:
-        print(f"📄 访问子页面：{page_url}")
-        resp = requests.get(page_url, headers=HEADERS, timeout=10)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-        img_tags = soup.find_all("img", src=True)
-        img_urls = [img["src"] for img in img_tags if img["src"].startswith("https://i.tuiimg.net") and img["src"].endswith(".jpg")]
-        print(f"🖼️ 提取到 {len(img_urls)} 张图片")
-        return img_urls
-    except Exception as e:
-        print(f"❌ 提取图片失败：{page_url}，错误：{e}")
-        return []
-
-def main():
-    subpages = get_subpages()
-    if not subpages:
-        print("⚠️ 没有子页面，终止任务")
-        return
-    for page in subpages:
-        img_urls = extract_image_urls(page)
-        for url in img_urls:
-            save_image(url)
-
-if __name__ == "__main__":
-    main()
+        print(f"🔗 获取到 {

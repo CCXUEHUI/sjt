@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+import undetected_chromedriver as uc
 import os, time, requests
 from PIL import Image
 
@@ -13,18 +14,29 @@ TXT_PATH = os.path.join(IMG_DIR, "files.txt")
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 def setup_driver():
-    options = Options()
+    options = uc.ChromeOptions()
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1920,1080")
-    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    return uc.Chrome(options=options)
+
+def scroll_to_bottom(driver):
+    last_height = driver.execute_script("return document.body.scrollHeight")
+    while True:
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            break
+        last_height = new_height
 
 def get_subpages(driver):
     driver.get(BASE_URL)
-    time.sleep(3)
-    links = driver.find_elements(By.XPATH, "//a[contains(@href, '/meinv/')]")
-    sub_urls = list(set([link.get_attribute("href") for link in links if "/meinv/" in link.get_attribute("href")]))
+    scroll_to_bottom(driver)
+    time.sleep(2)
+    links = driver.find_elements(By.TAG_NAME, "a")
+    sub_urls = list(set([link.get_attribute("href") for link in links if link.get_attribute("href") and "/meinv/" in link.get_attribute("href")]))
     print(f"🔗 提取子页面链接数量：{len(sub_urls)}")
     return sub_urls
 

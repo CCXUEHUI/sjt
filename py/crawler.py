@@ -1,5 +1,10 @@
-from requests_html import HTMLSession
-import os, re, time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+import os, time, requests
+from PIL import Image
 
 BASE_URL = "https://m.tuiimg.com/meinv"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -7,47 +12,62 @@ IMG_DIR = os.path.join(SCRIPT_DIR, "../images")
 TXT_PATH = os.path.join(IMG_DIR, "files.txt")
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
-session = HTMLSession()
+def setup_driver():
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--window-size=1920,1080")
+    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
-def get_subpages():
-    try:
-        r = session.get(BASE_URL, headers=HEADERS)
-        r.html.render(timeout=20)
-        print("✅ 主页面渲染成功")
-        subs = list(set(re.findall(r'https://m\.tuiimg\.com/meinv/\d+', r.html.html)))
-        print(f"🔗 提取子页面链接数量：{len(subs)}")
-        return subs
-    except Exception as e:
-        print("❌ 主页面渲染失败:", e)
-        return []
+def get_subpages(driver):
+    driver.get(BASE_URL)
+    time.sleep(3)
+    links = driver.find_elements(By.XPATH, "//a[contains(@href, '/meinv/')]")
+    sub_urls = list(set([link.get_attribute("href") for link in links if "/meinv/" in link.get_attribute("href")]))
+    print(f"🔗 提取子页面链接数量：{len(sub_urls)}")
+    return sub_urls
 
-def get_full_images(sub_url):
+def get_full_images(driver, sub_url):
+    driver.get(sub_url)
+    time.sleep(2)
     try:
-        r = session.get(sub_url, headers=HEADERS)
-        r.html.render(timeout=20)
-        print(f"📄 渲染子页面成功：{sub_url}")
-        imgs = list(set(re.findall(r'https://i\.tuiimg\.net/\S+?\.jpg', r.html.html)))
-        print(f"🖼️ 提取图片链接数量：{len(imgs)}")
-        return imgs
-    except Exception as e:
-        print(f"❌ 子页面渲染失败：{sub_url}", e)
-        return []
+        btn = driver.find_element(By.XPATH, "//span[contains(text(),'展开全图')]")
+        btn.click()
+        time.sleep(2)
+    except:
+        print("⚠️ 未找到展开按钮，跳过点击")
+    imgs = driver.find_elements(By.XPATH, "//img[contains(@src, 'i.tuiimg.net')]")
+    img_urls = list(set([img.get_attribute("src") for img in imgs]))
+    print(f"🖼️ 提取图片链接数量：{len(img_urls)}")
+    return img_urls
+
+def is_landscape(image_path):
+    try:
+        with Image.open(image_path) as img:
+            return img.width > img.height
+    except:
+        return False
 
 def save_image(url):
     name = url.split("/")[-1]
     path = os.path.join(IMG_DIR, name)
-    if not os.path.exists(path):
-        try:
-            img = session.get(url, headers=HEADERS).content
-            with open(path, "wb") as f:
-                f.write(img)
-            print(f"✅ 保存图片成功：{name}")
-            return True
-        except Exception as e:
-            print(f"❌ 保存图片失败：{url}", e)
-    else:
+    if os.path.exists(path):
         print(f"⚠️ 图片已存在：{name}")
-    return False
+        return False
+    try:
+        img = requests.get(url, headers=HEADERS, timeout=10).content
+        with open(path, "wb") as f:
+            f.write(img)
+        if not is_landscape(path):
+            os.remove(path)
+            print(f"🗑️ 删除竖图：{name}")
+            return False
+        print(f"✅ 保存横图成功：{name}")
+        return True
+    except Exception as e:
+        print(f"❌ 下载失败：{url}", e)
+        return False
 
 def update_txt(url):
     if not os.path.exists(TXT_PATH):
@@ -62,19 +82,15 @@ def update_txt(url):
 
 def main():
     os.makedirs(IMG_DIR, exist_ok=True)
-    subpages = get_subpages()
-    if not subpages:
-        print("🚫 未发现任何子页面，终止爬虫")
-        return
+    driver = setup_driver()
+    subpages = get_subpages(driver)
     for sub in subpages:
-        img_urls = get_full_images(sub)
-        if not img_urls:
-            print(f"🚫 子页面无图片：{sub}")
-            continue
-        for img_url in img_urls:
-            if save_image(img_url):
-                update_txt(img_url)
+        img_urls = get_full_images(driver, sub)
+        for url in img_urls:
+            if save_image(url):
+                update_txt(url)
             time.sleep(0.5)
+    driver.quit()
 
 if __name__ == "__main__":
     main()

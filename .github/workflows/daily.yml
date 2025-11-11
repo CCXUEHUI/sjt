@@ -19,7 +19,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests pillow flask
+          pip install requests-html pillow flask
 
       - name: Run crawler and filter
         working-directory: ./py

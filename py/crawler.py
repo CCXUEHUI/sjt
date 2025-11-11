@@ -1,5 +1,4 @@
 import os
-import re
 import requests
 from bs4 import BeautifulSoup
 from PIL import Image
@@ -9,10 +8,11 @@ BASE_URL = "https://m.tuiimg.com/meinv"
 IMG_DIR = "images"
 TXT_PATH = os.path.join(IMG_DIR, "files.txt")
 
+# 创建 images 文件夹
 os.makedirs(IMG_DIR, exist_ok=True)
-existing_urls = set()
 
-# 读取已保存的地址，避免重复
+# 读取已保存的地址，避免重复下载
+existing_urls = set()
 if os.path.exists(TXT_PATH):
     with open(TXT_PATH, "r", encoding="utf-8") as f:
         existing_urls = set(line.strip() for line in f if line.strip())
@@ -48,9 +48,13 @@ def get_subpages():
         resp = requests.get(BASE_URL, timeout=10)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
-        links = soup.find_all("a", href=True)
+        main_div = soup.find("div", class_="main")
+        if not main_div:
+            print("⚠️ 页面中未找到 class='main' 的 div")
+            return []
+        links = main_div.find_all("a", href=True)
         subpages = [f"https://m.tuiimg.com{a['href']}" for a in links if a["href"].startswith("/meinv/")]
-        print(f"🔗 获取到 {len(subpages)} 个子页面链接")
+        print(f"🔗 获取到 {len(subpages)} 个有效子页面链接")
         return subpages
     except Exception as e:
         print(f"❌ 获取子页面失败：{e}")

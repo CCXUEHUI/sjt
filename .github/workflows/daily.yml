@@ -1,0 +1,27 @@
+# .github/workflows/daily.yml
+name: Daily Image Crawler
+
+on:
+  schedule:
+    - cron: '0 16 * * *'  # UTC 16点 = 中国时间 24点
+  workflow_dispatch:
+
+jobs:
+  run-crawler:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install pillow flask
+
+      - name: Run crawler
+        run: |
+          python py/crawler.py
+          python py/filter.py

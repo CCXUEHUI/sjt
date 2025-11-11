@@ -1,5 +1,5 @@
-from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.chrome.options import Options
 import undetected_chromedriver as uc
 import os, time, requests
@@ -19,39 +19,12 @@ def setup_driver():
     options.add_argument("--window-size=1920,1080")
     return uc.Chrome(options=options)
 
-def scroll_to_bottom(driver):
-    last_height = driver.execute_script("return document.body.scrollHeight")
-    while True:
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
-        new_height = driver.execute_script("return document.body.scrollHeight")
-        if new_height == last_height:
-            break
-        last_height = new_height
-
-def get_subpages(driver):
+def get_image_elements(driver):
     driver.get(BASE_URL)
-    scroll_to_bottom(driver)
     time.sleep(2)
+    return driver.find_elements(By.TAG_NAME, "img")
 
-    imgs = driver.find_elements(By.TAG_NAME, "img")
-    sub_urls = []
-
-    for img in imgs:
-        try:
-            parent = img.find_element(By.XPATH, "./ancestor::a[1]")
-            href = parent.get_attribute("href")
-            if href and "/meinv/" in href:
-                sub_urls.append(href)
-        except:
-            continue
-
-    sub_urls = list(set(sub_urls))
-    print(f"🔗 从图片提取子页面链接数量：{len(sub_urls)}")
-    return sub_urls
-
-def get_full_images(driver, sub_url):
-    driver.get(sub_url)
+def get_full_images(driver):
     time.sleep(2)
     try:
         btn = driver.find_element(By.XPATH, "//span[contains(text(),'展开全图')]")
@@ -105,14 +78,22 @@ def update_txt(url):
 def main():
     os.makedirs(IMG_DIR, exist_ok=True)
     driver = setup_driver()
-    subpages = get_subpages(driver)
-    for sub in subpages:
-        img_urls = get_full_images(driver, sub)
-        for url in img_urls:
-            if save_image(url):
-                update_txt(url)
-            time.sleep(0.5)
-    driver.quit()
+    imgs = get_image_elements(driver)
+    print(f"📸 主页面图片数量：{len(imgs)}")
 
-if __name__ == "__main__":
-    main()
+    for i in range(len(imgs)):
+        try:
+            imgs = get_image_elements(driver)  # 重新获取元素，避免 stale
+            ActionChains(driver).move_to_element(imgs[i]).click().perform()
+            print(f"🖱️ 点击第 {i+1} 张图片")
+            time.sleep(2)
+
+            img_urls = get_full_images(driver)
+            for url in img_urls:
+                if save_image(url):
+                    update_txt(url)
+                time.sleep(0.5)
+
+            driver.back()
+            time.sleep(2)
+        except Exception as e:

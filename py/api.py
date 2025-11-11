@@ -1,16 +1,22 @@
-from flask import Flask, send_file
-import os, random
+from PIL import Image
+import os
 
-app = Flask(__name__)
-IMG_DIR = "images"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+IMG_DIR = os.path.join(SCRIPT_DIR, "../images")
 
-@app.route("/random")
-def random_image():
-    files = [f for f in os.listdir(IMG_DIR) if f.endswith(".jpg")]
-    if not files:
-        return "No images available", 404
-    choice = random.choice(files)
-    return send_file(os.path.join(IMG_DIR, choice), mimetype="image/jpeg")
+def is_landscape(path):
+    try:
+        with Image.open(path) as img:
+            return img.width > img.height
+    except:
+        return False
+
+def clean_portraits():
+    for file in os.listdir(IMG_DIR):
+        if file.endswith(".jpg"):
+            path = os.path.join(IMG_DIR, file)
+            if not is_landscape(path):
+                os.remove(path)
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    clean_portraits()

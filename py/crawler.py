@@ -1,5 +1,7 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import undetected_chromedriver as uc
 import os, time, requests
 from PIL import Image
@@ -12,16 +14,25 @@ HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 def setup_driver():
     options = uc.ChromeOptions()
-    options.add_argument("--headless")
+    options.add_argument("--headless=new")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1920,1080")
     return uc.Chrome(options=options)
 
-def get_image_elements(driver):
-    driver.get(BASE_URL)
-    time.sleep(2)
-    return driver.find_elements(By.TAG_NAME, "img")
+def get_clickable_elements(driver):
+    tags = ['div', 'span', 'li', 'section']
+    elements = []
+    for tag in tags:
+        elements.extend(driver.find_elements(By.TAG_NAME, tag))
+    return elements
+
+def wait_for_url_change(driver, old_url, timeout=5):
+    try:
+        WebDriverWait(driver, timeout).until(lambda d: d.current_url != old_url)
+        return True
+    except:
+        return False
 
 def get_full_images(driver):
     time.sleep(2)
@@ -77,26 +88,33 @@ def update_txt(url):
 def main():
     os.makedirs(IMG_DIR, exist_ok=True)
     driver = setup_driver()
-    imgs = get_image_elements(driver)
-    print(f"📸 主页面图片数量：{len(imgs)}")
+    driver.get(BASE_URL)
+    time.sleep(3)
 
-    for i in range(len(imgs)):
+    elements = get_clickable_elements(driver)
+    print(f"🔍 可尝试点击的元素数量：{len(elements)}")
+
+    for i in range(len(elements)):
         try:
-            imgs = get_image_elements(driver)  # 重新获取元素，避免 stale
-            ActionChains(driver).move_to_element(imgs[i]).click().perform()
-            print(f"🖱️ 点击第 {i+1} 张图片")
-            time.sleep(2)
+            elements = get_clickable_elements(driver)
+            old_url = driver.current_url
+            ActionChains(driver).move_to_element(elements[i]).click().perform()
+            print(f"🖱️ 尝试点击第 {i+1} 个元素")
 
-            img_urls = get_full_images(driver)
-            for url in img_urls:
-                if save_image(url):
-                    update_txt(url)
-                time.sleep(0.5)
-
-            driver.back()
-            time.sleep(2)
+            if wait_for_url_change(driver, old_url):
+                print("✅ 页面跳转成功，开始抓图")
+                img_urls = get_full_images(driver)
+                for url in img_urls:
+                    if save_image(url):
+                        update_txt(url)
+                    time.sleep(0.5)
+                driver.back()
+                time.sleep(2)
+            else:
+                print("⏩ 页面未跳转，跳过该元素")
         except Exception as e:
-            print(f"⚠️ 第 {i+1} 张图片处理失败：", e)
+            print(f"⚠️ 第 {i+1} 个元素处理失败：", e)
+            continue
 
     driver.quit()
 

@@ -21,11 +21,18 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests beautifulsoup4 pillow
+          pip install requests beautifulsoup4 pillow selenium
+
+      - name: Install Chrome and driver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+          which chromium-browser
+          which chromedriver
 
       - name: Run crawler
         run: |
-          python py/crawler.py   # 注意这里路径改为 py/crawler.py
+          python py/crawler.py
 
       - name: Commit and push results
         run: |

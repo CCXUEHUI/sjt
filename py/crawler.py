@@ -1,8 +1,12 @@
 import os
+import time
 import requests
 from bs4 import BeautifulSoup
 from PIL import Image
 from io import BytesIO
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 
 BASE_URL = "https://m.tuiimg.com/meinv/"
 IMG_DIR = "images"
@@ -47,48 +51,59 @@ def save_image(url: str):
         print(f"❌ 下载失败：{url}，错误：{e}")
 
 def get_subpages():
-    try:
-        print(f"🌐 正在访问主页面：{BASE_URL}")
-        resp = requests.get(BASE_URL, headers=HEADERS, timeout=10)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
+    print(f"🌐 正在访问主页面：{BASE_URL}")
+    resp = requests.get(BASE_URL, headers=HEADERS, timeout=10)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
 
-        # 在 li 标签下查找所有 a 标签
-        links = soup.find_all("li")
-        subpages = set()
-        for li in links:
-            a_tags = li.find_all("a", href=True)
-            for a in a_tags:
-                href = a["href"]
-                if href.startswith("https://m.tuiimg.com/meinv/"):
-                    subpages.add(href)
+    subpages = set()
+    for li in soup.find_all("li"):
+        for a in li.find_all("a", href=True):
+            href = a["href"]
+            if href.startswith("https://m.tuiimg.com/meinv/"):
+                subpages.add(href)
 
-        print(f"📊 总共获取到 {len(subpages)} 个有效子页面链接")
-        return list(subpages)
-    except Exception as e:
-        print(f"❌ 获取子页面失败：{e}")
-        return []
+    print(f"📊 总共获取到 {len(subpages)} 个有效子页面链接")
+    return list(subpages)
 
 def extract_image_urls(page_url):
+    print(f"📄 打开子页面：{page_url}")
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    driver = webdriver.Chrome(options=options)
+
+    driver.get(page_url)
+    time.sleep(3)
+
+    # 模拟点击“展开全图”
     try:
-        print(f"📄 访问子页面：{page_url}")
-        resp = requests.get(page_url, headers=HEADERS, timeout=10)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
+        expand_btn = driver.find_element(By.XPATH, "//a[contains(text(),'展开全图')]")
+        expand_btn.click()
+        time.sleep(3)
+    except Exception:
+        print("⚠️ 未找到展开按钮，可能页面已直接显示全部图片")
 
-        # 模拟点击“展开全图”，直接查找完整页面中的图片
-        img_tags = soup.find_all("img", src=True)
-        img_urls = set()
-        for img in img_tags:
-            src = img["src"]
-            if src.startswith("https://i.tuiimg.net") and src.endswith(".jpg"):
-                img_urls.add(src)
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    driver.quit()
 
-        print(f"🖼️ 提取到 {len(img_urls)} 张图片")
-        return list(img_urls)
-    except Exception as e:
-        print(f"❌ 提取图片失败：{page_url}，错误：{e}")
-        return []
+    img_urls = set()
+    for img in soup.find_all("img", src=True):
+        src = img["src"]
+        if src.startswith("https://i.tuiimg.net") and src.endswith(".jpg"):
+            img_urls.add(src)
+
+    print(f"🖼️ 提取到 {len(img_urls)} 张图片")
+    return list(img_urls)
+
+def clean_files_txt():
+    if os.path.exists(TXT_PATH):
+        with open(TXT_PATH, "r", encoding="utf-8") as f:
+            lines = [line.strip() for line in f if line.strip()]
+        with open(TXT_PATH, "w", encoding="utf-8") as f:
+            f.write("\n".join(sorted(set(lines))) + "\n")
+        print(f"🧹 已清理 files.txt，当前记录 {len(lines)} 条")
 
 def main():
     subpages = get_subpages()
@@ -99,6 +114,7 @@ def main():
         img_urls = extract_image_urls(page)
         for url in img_urls:
             save_image(url)
+    clean_files_txt()
 
 if __name__ == "__main__":
     main()

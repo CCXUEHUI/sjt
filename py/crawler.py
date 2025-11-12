@@ -1,5 +1,6 @@
 import os
 import time
+import shutil
 import requests
 from bs4 import BeautifulSoup
 from PIL import Image
@@ -7,6 +8,7 @@ from io import BytesIO
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
 
 BASE_URL = "https://m.tuiimg.com/meinv/"
 IMG_DIR = "images"
@@ -72,8 +74,21 @@ def extract_image_urls(page_url):
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
-    options.binary_location = "/usr/bin/google-chrome"  # 指定 Chrome 路径
-    driver = webdriver.Chrome(options=options)
+
+    # 自动检测 Chrome 路径
+    chrome_path = shutil.which("google-chrome") or shutil.which("google-chrome-stable") or shutil.which("chromium-browser")
+    if chrome_path:
+        options.binary_location = chrome_path
+        print(f"✅ 使用 Chrome 路径: {chrome_path}")
+    else:
+        raise RuntimeError("未找到 Chrome 可执行文件")
+
+    # 自动检测 chromedriver 路径
+    driver_path = shutil.which("chromedriver")
+    if not driver_path:
+        raise RuntimeError("未找到 chromedriver")
+
+    driver = webdriver.Chrome(service=Service(driver_path), options=options)
 
     driver.get(page_url)
     time.sleep(3)

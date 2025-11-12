@@ -54,13 +54,25 @@ def get_subpages():
         print(f"📄 页面状态码：{resp.status_code}")
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
-        main_div = soup.find("div", class_="main")
-        if not main_div:
-            print("⚠️ 页面中未找到 class='main' 的 div")
+
+        # 查找 <ul class="main" id="main">
+        main_ul = soup.find("ul", class_="main", id="main")
+        if not main_ul:
+            print("⚠️ 页面中未找到 <ul class='main' id='main'> 标签")
             return []
-        links = main_div.find_all("a", href=True)
-        subpages = [f"https://m.tuiimg.com{a['href']}" for a in links if a["href"].startswith("/meinv/")]
-        print(f"🔗 获取到 {len(subpages)} 个有效子页面链接")
+
+        # 在 <ul> 下查找所有 a 标签
+        links = main_ul.find_all("a", href=True)
+        subpages = []
+        for a in links:
+            href = a["href"]
+            text = a.get_text(strip=True)
+            if href.startswith("/meinv/"):
+                full_url = f"https://m.tuiimg.com{href}"
+                subpages.append(full_url)
+                print(f"🔗 链接文本: {text} | 地址: {full_url}")
+
+        print(f"📊 总共获取到 {len(subpages)} 个有效子页面链接")
         return subpages
     except Exception as e:
         print(f"❌ 获取子页面失败：{e}")

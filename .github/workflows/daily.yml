@@ -25,7 +25,7 @@ jobs:
 
       - name: Run crawler
         run: |
-          python crawler.py
+          python py/crawler.py   # 注意这里路径改为 py/crawler.py
 
       - name: Commit and push results
         run: |

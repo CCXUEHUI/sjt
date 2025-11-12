@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from PIL import Image
 from io import BytesIO
 
-BASE_URL = "https://m.tuiimg.com/meinv"
+BASE_URL = "https://m.tuiimg.com/meinv/"
 IMG_DIR = "images"
 TXT_PATH = os.path.join(IMG_DIR, "files.txt")
 

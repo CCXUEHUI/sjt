@@ -72,6 +72,7 @@ def extract_image_urls(page_url):
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
+    options.binary_location = "/usr/bin/google-chrome"  # 指定 Chrome 路径
     driver = webdriver.Chrome(options=options)
 
     driver.get(page_url)

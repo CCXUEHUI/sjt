@@ -2,19 +2,13 @@ import os
 import re
 import requests
 from bs4 import BeautifulSoup
-from PIL import Image
-from io import BytesIO
 
 BASE_URL = "https://m.tuiimg.com/meinv/"
-IMG_DIR = "images"
-TXT_PATH = os.path.join(IMG_DIR, "files.txt")
+TXT_PATH = "files.txt"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36 EdgA/136.0.0.0"
 }
-
-# 创建 images 文件夹
-os.makedirs(IMG_DIR, exist_ok=True)
 
 # 已保存的地址集合
 existing_urls = set()
@@ -22,42 +16,28 @@ if os.path.exists(TXT_PATH):
     with open(TXT_PATH, "r", encoding="utf-8") as f:
         existing_urls = set(line.strip() for line in f if line.strip())
 
-def is_landscape(img: Image.Image) -> bool:
-    return img.width > img.height
-
 def url_is_valid(url: str) -> bool:
     # 只允许以数字.jpg 结尾的地址
     return bool(re.search(r"/\d+\.jpg$", url))
 
-def save_image(url: str):
+def save_url(url: str):
     if url in existing_urls:
         print(f"🔁 已存在，跳过：{url}")
-        return
+        return True
     if not url_is_valid(url):
         print(f"⚠️ 非数字.jpg结尾，跳过：{url}")
-        return
+        return False
     try:
-        print(f"⬇️ 正在下载图片：{url}")
-        resp = requests.get(url, headers=HEADERS, timeout=10)
+        resp = requests.head(url, headers=HEADERS, timeout=10)
         if resp.status_code != 200:
             print(f"❌ 无法访问：{url}")
             return False
-        img = Image.open(BytesIO(resp.content))
-        print(f"📐 图片尺寸：{img.width}x{img.height}")
-        if is_landscape(img):
-            # 用网址作为文件名，替换掉斜杠
-            safe_name = url.replace("https://", "").replace("/", "_")
-            path = os.path.join(IMG_DIR, safe_name)
-            img.save(path)
-            with open(TXT_PATH, "a", encoding="utf-8") as f:
-                f.write(url + "\n")
-            print(f"✅ 已保存横图：{safe_name}")
-            return True
-        else:
-            print(f"⛔ 跳过竖图：{url}")
-            return True
+        with open(TXT_PATH, "a", encoding="utf-8") as f:
+            f.write(url + "\n")
+        print(f"✅ 已记录地址：{url}")
+        return True
     except Exception as e:
-        print(f"❌ 下载失败：{url}，错误：{e}")
+        print(f"❌ 请求失败：{url}，错误：{e}")
         return False
 
 def get_subpages():
@@ -92,22 +72,21 @@ def extract_image_urls(page_url):
     return list(img_urls)
 
 def crawl_sequence(start_url: str):
-    """
-    从一个数字.jpg开始，依次尝试访问数字+1.jpg，直到失败为止
-    """
     match = re.search(r"(.*?/)(\d+)\.jpg$", start_url)
     if not match:
         return
     base, num = match.groups()
     num = int(num)
-
+    start_num = num
+    end_num = num
     while True:
         url = f"{base}{num}.jpg"
-        success = save_image(url)
+        success = save_url(url)
         if not success:
-            print(f"⛔ 序列终止：{url}")
             break
+        end_num = num
         num += 1
+    print(f"📌 序列范围: {base}{start_num}.jpg → {base}{end_num}.jpg")
 
 def clean_files_txt():
     if os.path.exists(TXT_PATH):

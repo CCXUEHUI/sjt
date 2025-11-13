@@ -30,8 +30,16 @@ jobs:
           wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
           sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
           sudo apt-get install -y chromium-chromedriver
-          which google-chrome
-          which chromedriver
+
+      - name: Check Chrome installation
+        run: |
+          echo "🔍 检查 Chrome 和 chromedriver 路径"
+          which google-chrome || true
+          which google-chrome-stable || true
+          which chromium-browser || true
+          which chromedriver || true
+          google-chrome --version || true
+          chromedriver --version || true
 
       - name: Run crawler
         run: |

@@ -75,8 +75,8 @@ def extract_image_urls(page_url):
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
 
-    # 自动检测 Chrome 路径
-    chrome_path = shutil.which("google-chrome") or shutil.which("google-chrome-stable") or shutil.which("chromium-browser")
+    # 优先检测 google-chrome-stable
+    chrome_path = shutil.which("google-chrome-stable") or shutil.which("google-chrome") or shutil.which("chromium-browser")
     if chrome_path:
         options.binary_location = chrome_path
         print(f"✅ 使用 Chrome 路径: {chrome_path}")

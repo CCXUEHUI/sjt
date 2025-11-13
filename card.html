@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Centered with Shadow</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+
+  .image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 330px;
+    height: 196px;
+    background-color: #fff;
+    border-radius: 20px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1),
+                0 5px 3px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    margin: 0px 5px 0px 12px;
+  }
+
+  .image-container img {
+    width: 100%;
+    height: auto;
+    border-radius: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="image-container">
+  <img id="randomImage" src="" alt="Centered Image with Shadow">
+</div>
+
+<script>
+  const RAW_URL = "https://raw.githubusercontent.com/CCXUEHUI/sjt/refs/heads/main/files.txt";
+
+  fetch(RAW_URL)
+    .then(response => response.text())
+    .then(text => {
+      const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
+      if (lines.length > 0) {
+        const randomUrl = lines[Math.floor(Math.random() * lines.length)];
+        document.getElementById("randomImage").src = randomUrl;
+      } else {
+        document.getElementById("randomImage").alt = "🚫 文件为空";
+      }
+    })
+    .catch(err => {
+      document.getElementById("randomImage").alt = "❌ 加载失败：" + err;
+    });
+</script>
+
+</body>
+</html>

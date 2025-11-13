@@ -1,19 +1,26 @@
-from flask import Flask, send_file
-import os, random
-
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-IMG_DIR = os.path.join(SCRIPT_DIR, "../images")
+from flask import Flask, Response
+import os
+import random
 
 app = Flask(__name__)
 
+# 仓库根路径下的 files.txt
+TXT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../files.txt")
+
+def load_urls():
+    if not os.path.exists(TXT_PATH):
+        return []
+    with open(TXT_PATH, "r", encoding="utf-8") as f:
+        return [line.strip() for line in f if line.strip()]
+
 @app.route("/random")
-def random_image():
-    files = [f for f in os.listdir(IMG_DIR) if f.endswith(".jpg")]
-    if not files:
-        return "🚫 没有可用图片", 404
-    choice = random.choice(files)
-    print(f"🎲 随机展示图片：{choice}")
-    return send_file(os.path.join(IMG_DIR, choice), mimetype="image/jpeg")
+def random_url():
+    urls = load_urls()
+    if not urls:
+        return Response("🚫 没有可用图片地址", status=404)
+    choice = random.choice(urls)
+    print(f"🎲 随机选择图片地址：{choice}")
+    return Response(choice, mimetype="text/plain")
 
 if __name__ == "__main__":
     app.run(port=5000)

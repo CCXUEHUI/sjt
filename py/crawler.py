@@ -1,14 +1,8 @@
 import os
-import time
-import shutil
 import requests
 from bs4 import BeautifulSoup
 from PIL import Image
 from io import BytesIO
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
 
 BASE_URL = "https://m.tuiimg.com/meinv/"
 IMG_DIR = "images"
@@ -68,52 +62,11 @@ def get_subpages():
     print(f"📊 总共获取到 {len(subpages)} 个有效子页面链接")
     return list(subpages)
 
-def get_chrome_path():
-    candidates = [
-        shutil.which("google-chrome-stable"),
-        shutil.which("google-chrome"),
-        shutil.which("chromium-browser"),
-        "/opt/google/chrome/google-chrome"
-    ]
-    for path in candidates:
-        if path and os.path.exists(path) and os.access(path, os.X_OK):
-            print(f"✅ 使用 Chrome 路径: {path}")
-            return path
-    raise RuntimeError("未找到可用的 Chrome 可执行文件")
-
-def get_chromedriver_path():
-    driver_path = shutil.which("chromedriver")
-    if driver_path and os.path.exists(driver_path) and os.access(driver_path, os.X_OK):
-        print(f"✅ 使用 chromedriver 路径: {driver_path}")
-        return driver_path
-    raise RuntimeError("未找到可用的 chromedriver")
-
 def extract_image_urls(page_url):
     print(f"📄 打开子页面：{page_url}")
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-
-    chrome_path = get_chrome_path()
-    options.binary_location = chrome_path
-
-    driver_path = get_chromedriver_path()
-    driver = webdriver.Chrome(service=Service(driver_path), options=options)
-
-    driver.get(page_url)
-    time.sleep(3)
-
-    # 模拟点击“展开全图”
-    try:
-        expand_btn = driver.find_element(By.XPATH, "//a[contains(text(),'展开全图')]")
-        expand_btn.click()
-        time.sleep(3)
-    except Exception:
-        print("⚠️ 未找到展开按钮，可能页面已直接显示全部图片")
-
-    soup = BeautifulSoup(driver.page_source, "html.parser")
-    driver.quit()
+    resp = requests.get(page_url, headers=HEADERS, timeout=10)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
 
     img_urls = set()
     for img in soup.find_all("img", src=True):

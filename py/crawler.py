@@ -2,6 +2,8 @@ import os
 import re
 import requests
 from bs4 import BeautifulSoup
+from PIL import Image
+from io import BytesIO
 
 BASE_URL = "https://m.tuiimg.com/meinv/"
 TXT_PATH = "files.txt"
@@ -16,11 +18,13 @@ if os.path.exists(TXT_PATH):
     with open(TXT_PATH, "r", encoding="utf-8") as f:
         existing_urls = set(line.strip() for line in f if line.strip())
 
+def is_landscape(img: Image.Image) -> bool:
+    return img.width > img.height
+
 def url_is_valid(url: str) -> bool:
-    # 只允许以数字.jpg 结尾的地址
     return bool(re.search(r"/\d+\.jpg$", url))
 
-def save_url(url: str):
+def save_url_if_landscape(url: str):
     if url in existing_urls:
         print(f"🔁 已存在，跳过：{url}")
         return True
@@ -28,46 +32,45 @@ def save_url(url: str):
         print(f"⚠️ 非数字.jpg结尾，跳过：{url}")
         return False
     try:
-        resp = requests.head(url, headers=HEADERS, timeout=10)
+        resp = requests.get(url, headers=HEADERS, timeout=10)
         if resp.status_code != 200:
             print(f"❌ 无法访问：{url}")
             return False
-        with open(TXT_PATH, "a", encoding="utf-8") as f:
-            f.write(url + "\n")
-        print(f"✅ 已记录地址：{url}")
-        return True
+        img = Image.open(BytesIO(resp.content))
+        if is_landscape(img):
+            with open(TXT_PATH, "a", encoding="utf-8") as f:
+                f.write(url + "\n")
+            print(f"✅ 已记录横屏地址：{url}")
+            return True
+        else:
+            print(f"⛔ 跳过竖屏：{url}")
+            return True
     except Exception as e:
         print(f"❌ 请求失败：{url}，错误：{e}")
         return False
 
 def get_subpages():
-    print(f"🌐 正在访问主页面：{BASE_URL}")
     resp = requests.get(BASE_URL, headers=HEADERS, timeout=10)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
-
     subpages = set()
     for li in soup.find_all("li"):
         for a in li.find_all("a", href=True):
             href = a["href"]
             if href.startswith("https://m.tuiimg.com/meinv/"):
                 subpages.add(href)
-
     print(f"📊 总共获取到 {len(subpages)} 个有效子页面链接")
     return list(subpages)
 
 def extract_image_urls(page_url):
-    print(f"📄 打开子页面：{page_url}")
     resp = requests.get(page_url, headers=HEADERS, timeout=10)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
-
     img_urls = set()
     for img in soup.find_all("img", src=True):
         src = img["src"]
         if src.startswith("https://i.tuiimg.net") and src.endswith(".jpg"):
             img_urls.add(src)
-
     print(f"🖼️ 提取到 {len(img_urls)} 张图片")
     return list(img_urls)
 
@@ -81,7 +84,7 @@ def crawl_sequence(start_url: str):
     end_num = num
     while True:
         url = f"{base}{num}.jpg"
-        success = save_url(url)
+        success = save_url_if_landscape(url)
         if not success:
             break
         end_num = num

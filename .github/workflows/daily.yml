@@ -1,54 +1,100 @@
-name: Daily Image Crawler
+import os
+import requests
+from bs4 import BeautifulSoup
+from PIL import Image
+from io import BytesIO
 
-on:
-  schedule:
-    - cron: "0 2 * * *"   # 每天凌晨 2 点运行
-  workflow_dispatch:       # 支持手动触发
+BASE_URL = "https://m.tuiimg.com/meinv/"
+IMG_DIR = "images"
+TXT_PATH = os.path.join(IMG_DIR, "files.txt")
 
-jobs:
-  run-crawler:
-    runs-on: ubuntu-latest
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36 EdgA/136.0.0.0"
+}
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+# 创建 images 文件夹
+os.makedirs(IMG_DIR, exist_ok=True)
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+# 已保存的地址集合
+existing_urls = set()
+if os.path.exists(TXT_PATH):
+    with open(TXT_PATH, "r", encoding="utf-8") as f:
+        existing_urls = set(line.strip() for line in f if line.strip())
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests beautifulsoup4 pillow selenium
+def is_landscape(img: Image.Image) -> bool:
+    return img.width > img.height
 
-      - name: Install Chrome and driver
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget unzip
-          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
-          sudo apt-get install -y chromium-chromedriver
+def save_image(url: str):
+    if url in existing_urls:
+        print(f"🔁 已存在，跳过：{url}")
+        return
+    try:
+        print(f"⬇️ 正在下载图片：{url}")
+        resp = requests.get(url, headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+        img = Image.open(BytesIO(resp.content))
+        print(f"📐 图片尺寸：{img.width}x{img.height}")
+        if is_landscape(img):
+            filename = os.path.basename(url)
+            path = os.path.join(IMG_DIR, filename)
+            img.save(path)
+            with open(TXT_PATH, "a", encoding="utf-8") as f:
+                f.write(url + "\n")
+            print(f"✅ 已保存横图：{filename}")
+        else:
+            print(f"⛔ 跳过竖图：{url}")
+    except Exception as e:
+        print(f"❌ 下载失败：{url}，错误：{e}")
 
-      - name: Check Chrome installation
-        run: |
-          echo "🔍 检查 Chrome 和 chromedriver 路径"
-          which google-chrome || true
-          which google-chrome-stable || true
-          which chromium-browser || true
-          which chromedriver || true
-          google-chrome --version || true
-          chromedriver --version || true
+def get_subpages():
+    print(f"🌐 正在访问主页面：{BASE_URL}")
+    resp = requests.get(BASE_URL, headers=HEADERS, timeout=10)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
 
-      - name: Run crawler
-        run: |
-          python py/crawler.py
+    subpages = set()
+    for li in soup.find_all("li"):
+        for a in li.find_all("a", href=True):
+            href = a["href"]
+            if href.startswith("https://m.tuiimg.com/meinv/"):
+                subpages.add(href)
 
-      - name: Commit and push results
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add images/*
-          git commit -m "Update images from crawler" || echo "No changes to commit"
-          git push
+    print(f"📊 总共获取到 {len(subpages)} 个有效子页面链接")
+    return list(subpages)
+
+def extract_image_urls(page_url):
+    print(f"📄 打开子页面：{page_url}")
+    resp = requests.get(page_url, headers=HEADERS, timeout=10)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    img_urls = set()
+    for img in soup.find_all("img", src=True):
+        src = img["src"]
+        if src.startswith("https://i.tuiimg.net") and src.endswith(".jpg"):
+            img_urls.add(src)
+
+    print(f"🖼️ 提取到 {len(img_urls)} 张图片")
+    return list(img_urls)
+
+def clean_files_txt():
+    if os.path.exists(TXT_PATH):
+        with open(TXT_PATH, "r", encoding="utf-8") as f:
+            lines = [line.strip() for line in f if line.strip()]
+        with open(TXT_PATH, "w", encoding="utf-8") as f:
+            f.write("\n".join(sorted(set(lines))) + "\n")
+        print(f"🧹 已清理 files.txt，当前记录 {len(lines)} 条")
+
+def main():
+    subpages = get_subpages()
+    if not subpages:
+        print("⚠️ 没有子页面，终止任务")
+        return
+    for page in subpages:
+        img_urls = extract_image_urls(page)
+        for url in img_urls:
+            save_image(url)
+    clean_files_txt()
+
+if __name__ == "__main__":
+    main()

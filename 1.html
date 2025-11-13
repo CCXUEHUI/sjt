@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Random line</title>
+</head>
+<body>
+<script>
+  const TXT_URL = "https://ccxuehui.github.io/sjt/files.txt";
+  fetch(TXT_URL)
+    .then(r => r.text())
+    .then(t => {
+      const lines = t.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const random = lines[Math.floor(Math.random() * lines.length)] || "";
+      document.body.textContent = random || "文件为空";
+    })
+    .catch(e => {
+      document.body.textContent = "加载失败";
+    });
+</script>
+</body>
+</html>

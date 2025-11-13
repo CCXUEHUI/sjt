@@ -27,10 +27,15 @@ jobs:
         run: |
           python py/crawler.py
 
+      - name: Show files.txt
+        run: |
+          echo "📄 最新 files.txt 内容："
+          cat files.txt || echo "files.txt 不存在"
+
       - name: Commit and push results
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add images/*
-          git commit -m "Update images from crawler" || echo "No changes to commit"
+          git add files.txt
+          git commit -m "Update files.txt from crawler" || echo "No changes to commit"
           git push

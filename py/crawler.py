@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 from bs4 import BeautifulSoup
 from PIL import Image
@@ -24,9 +25,16 @@ if os.path.exists(TXT_PATH):
 def is_landscape(img: Image.Image) -> bool:
     return img.width > img.height
 
+def url_is_valid(url: str) -> bool:
+    # 只允许以数字.jpg 结尾的地址
+    return bool(re.search(r"/\d+\.jpg$", url))
+
 def save_image(url: str):
     if url in existing_urls:
         print(f"🔁 已存在，跳过：{url}")
+        return
+    if not url_is_valid(url):
+        print(f"⚠️ 非数字.jpg结尾，跳过：{url}")
         return
     try:
         print(f"⬇️ 正在下载图片：{url}")
@@ -35,12 +43,13 @@ def save_image(url: str):
         img = Image.open(BytesIO(resp.content))
         print(f"📐 图片尺寸：{img.width}x{img.height}")
         if is_landscape(img):
-            filename = os.path.basename(url)
-            path = os.path.join(IMG_DIR, filename)
+            # 用网址作为文件名，替换掉斜杠
+            safe_name = url.replace("https://", "").replace("/", "_")
+            path = os.path.join(IMG_DIR, safe_name)
             img.save(path)
             with open(TXT_PATH, "a", encoding="utf-8") as f:
                 f.write(url + "\n")
-            print(f"✅ 已保存横图：{filename}")
+            print(f"✅ 已保存横图：{safe_name}")
         else:
             print(f"⛔ 跳过竖图：{url}")
     except Exception as e:

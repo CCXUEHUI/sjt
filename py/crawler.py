@@ -39,7 +39,9 @@ def save_image(url: str):
     try:
         print(f"⬇️ 正在下载图片：{url}")
         resp = requests.get(url, headers=HEADERS, timeout=10)
-        resp.raise_for_status()
+        if resp.status_code != 200:
+            print(f"❌ 无法访问：{url}")
+            return False
         img = Image.open(BytesIO(resp.content))
         print(f"📐 图片尺寸：{img.width}x{img.height}")
         if is_landscape(img):
@@ -50,10 +52,13 @@ def save_image(url: str):
             with open(TXT_PATH, "a", encoding="utf-8") as f:
                 f.write(url + "\n")
             print(f"✅ 已保存横图：{safe_name}")
+            return True
         else:
             print(f"⛔ 跳过竖图：{url}")
+            return True
     except Exception as e:
         print(f"❌ 下载失败：{url}，错误：{e}")
+        return False
 
 def get_subpages():
     print(f"🌐 正在访问主页面：{BASE_URL}")
@@ -86,6 +91,24 @@ def extract_image_urls(page_url):
     print(f"🖼️ 提取到 {len(img_urls)} 张图片")
     return list(img_urls)
 
+def crawl_sequence(start_url: str):
+    """
+    从一个数字.jpg开始，依次尝试访问数字+1.jpg，直到失败为止
+    """
+    match = re.search(r"(.*?/)(\d+)\.jpg$", start_url)
+    if not match:
+        return
+    base, num = match.groups()
+    num = int(num)
+
+    while True:
+        url = f"{base}{num}.jpg"
+        success = save_image(url)
+        if not success:
+            print(f"⛔ 序列终止：{url}")
+            break
+        num += 1
+
 def clean_files_txt():
     if os.path.exists(TXT_PATH):
         with open(TXT_PATH, "r", encoding="utf-8") as f:
@@ -102,7 +125,8 @@ def main():
     for page in subpages:
         img_urls = extract_image_urls(page)
         for url in img_urls:
-            save_image(url)
+            if url_is_valid(url):
+                crawl_sequence(url)
     clean_files_txt()
 
 if __name__ == "__main__":

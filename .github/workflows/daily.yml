@@ -36,7 +36,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add files.txt
+          git add images/files.txt
           git commit -m "Update files.txt from crawler" || echo "No changes to commit"
           git push
 
@@ -47,5 +47,5 @@ jobs:
           port: 21
           user: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
-          localPath: /images/files.txt
+          localPath: images/files.txt
           remotePath: /hehehecao.125mb.com/

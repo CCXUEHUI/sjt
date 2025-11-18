@@ -2,8 +2,8 @@ name: Daily Image Crawler
 
 on:
   schedule:
-    - cron: "0 2 * * *"   # 每天凌晨 2 点运行
-  workflow_dispatch:       # 支持手动触发
+    - cron: "0 18 * * *"   # 每天 UTC 18:00，对应北京时间次日凌晨 2:00
+  workflow_dispatch:
 
 jobs:
   run-crawler:
@@ -39,3 +39,13 @@ jobs:
           git add files.txt
           git commit -m "Update files.txt from crawler" || echo "No changes to commit"
           git push
+
+      - name: Upload files.txt to FTP
+        uses: sebastianpopp/ftp-action@v2
+        with:
+          host: f27-preview.125mb.com
+          port: 21
+          user: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          localPath: files.txt
+          remotePath: /hehehecao.125mb.com/files.txt

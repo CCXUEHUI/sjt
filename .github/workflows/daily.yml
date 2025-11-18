@@ -41,7 +41,7 @@ jobs:
           git push
 
       - name: Upload files.txt to FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: f27-preview.125mb.com
           port: 21

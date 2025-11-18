@@ -47,5 +47,5 @@ jobs:
           port: 21
           user: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
-          localPath: files.txt
+          localPath: /images/files.txt
           remotePath: /hehehecao.125mb.com/

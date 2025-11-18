@@ -6,7 +6,7 @@ from PIL import Image
 from io import BytesIO
 
 BASE_URL = "https://m.tuiimg.com/meinv/list_5.html"
-TXT_PATH = "/images/files.txt"
+TXT_PATH = os.path.join(repo_root, "images", "files.txt")
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36 EdgA/136.0.0.0"

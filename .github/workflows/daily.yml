@@ -41,7 +41,7 @@ jobs:
           git push
 
       - name: Upload files.txt to FTP
-        uses: sebastianpopp/ftp-action@v2
+        uses: sebastianpopp/ftp-action@v1
         with:
           host: f27-preview.125mb.com
           port: 21

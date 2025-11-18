@@ -49,3 +49,4 @@ jobs:
           password: ${{ secrets.FTP_PASS }}
           local-dir: .
           server-dir: /hehehecao.125mb.com/
+

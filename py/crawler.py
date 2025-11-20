@@ -100,7 +100,7 @@ def clean_files_txt():
 
 def main():
     # 循环处理 list_7.html 到 list_33.html
-    for i in range(19, 24):
+    for i in range(25, 33):
         base_url = f"https://m.tuiimg.com/meinv/list_{i}.html"
         print(f"\n🚀 正在处理第 {i} 页: {base_url}")   # 进度提示
 
